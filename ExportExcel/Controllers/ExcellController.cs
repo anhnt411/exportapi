@@ -57,5 +57,31 @@ namespace ExportExcel.Controllers
 
             return ResultObject<List<Employees>>.GetResult(200, "OK", list);
         }
+
+
+        [HttpGet("exportv2")]
+        public async Task<IActionResult> ExportV2(CancellationToken cancellationToken)
+        {
+            // query data from database  
+            await Task.Yield();
+            var list = new List<Employees>()
+    {
+        new Employees { FirstName = "catcher",LastName="Anh" ,Gender="fd",Salary = 18 },
+        new Employees {  FirstName = "catcherf",LastName="Anhd" ,Gender="fdf",Salary = 19 }
+    };
+            var stream = new MemoryStream();
+
+            using (var package = new ExcelPackage(stream))
+            {
+                var workSheet = package.Workbook.Worksheets.Add("Sheet1");
+                workSheet.Cells.LoadFromCollection(list, true);
+                package.Save();
+            }
+            stream.Position = 0;
+            string excelName = $"UserList-{DateTime.Now.ToString("yyyyMMddHHmmssfff")}.xlsx";
+
+            //return File(stream, "application/octet-stream", excelName);  
+            return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelName);
+        }
     }
 }

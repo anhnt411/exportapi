@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ExportExcel.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
@@ -14,6 +15,12 @@ namespace ExportExcel.Controllers
     [Route("api/excel")]
     public class ExcellController : Controller
     {
+        private readonly IHostingEnvironment _hostingEnvironment;
+
+        public ExcellController(IHostingEnvironment host)
+        {
+            this._hostingEnvironment = host;
+        }
         [HttpPost]
          public async Task<ResultObject<List<Employees>>> Import( IFormFile formFile, CancellationToken cancellationToken)
         {
@@ -56,6 +63,38 @@ namespace ExportExcel.Controllers
             // here just read and return  
 
             return ResultObject<List<Employees>>.GetResult(200, "OK", list);
+        }
+
+        [HttpGet("export")]
+        public async Task<ResultObject<string>> Export(CancellationToken cancellationToken)
+        {
+            string folder = "File";
+            string excelName = $"ShifLog-{DateTime.Now.ToString("yyyyMMddHHmmssfff")}.xlsx";
+            string downloadUrl = string.Format("{0}://{1}/{2}", Request.Scheme, Request.Host, excelName);
+            FileInfo file = new FileInfo(Path.Combine(folder, excelName));
+            if (file.Exists)
+            {
+                file.Delete();
+                file = new FileInfo(Path.Combine(folder, excelName));
+            }
+
+            // query data from database  
+            await Task.Yield();
+
+            var list = new List<Employees>()
+    {
+        new Employees { FirstName = "Tuan",LastName="Anh",Gender="Boy",Salary = 20000 },
+        new Employees { FirstName = "Huynh", LastName = "Van",Gender="Ok",Salary = 4000 },
+    };
+
+            using (var package = new ExcelPackage(file))
+            {
+                var workSheet = package.Workbook.Worksheets.Add("Sheet1");
+                workSheet.Cells.LoadFromCollection(list, true);
+                package.Save();
+            }
+
+            return ResultObject<string>.GetResult(0, "OK", downloadUrl);
         }
     }
 }

@@ -22,7 +22,7 @@ namespace ExportExcel.Controllers
             this._hostingEnvironment = host;
         }
         [HttpPost]
-         public async Task<ResultObject<List<Employees>>> Import( IFormFile formFile, CancellationToken cancellationToken)
+        public async Task<ResultObject<List<Employees>>> Import(IFormFile formFile, CancellationToken cancellationToken)
         {
             if (formFile == null || formFile.Length <= 0)
             {
@@ -96,5 +96,31 @@ namespace ExportExcel.Controllers
 
             return ResultObject<string>.GetResult(0, "OK", downloadUrl);
         }
+
+        [HttpGet("exportv2")]
+        public async Task<IActionResult> ExportV2(CancellationToken cancellationToken)
+        {
+            // query data from database  
+            await Task.Yield();
+            var list = new List<Employees>()
+    {
+        new Employees { FirstName = "catcher",LastName="Anh" ,Gender="fd",Salary = 18 },
+        new Employees {  FirstName = "catcherf",LastName="Anhd" ,Gender="fdf",Salary = 19 }
+    };
+            var stream = new MemoryStream();
+
+            using (var package = new ExcelPackage(stream))
+            {
+                var workSheet = package.Workbook.Worksheets.Add("Sheet1");
+                workSheet.Cells.LoadFromCollection(list, true);
+                package.Save();
+            }
+            stream.Position = 0;
+            string excelName = $"UserList-{DateTime.Now.ToString("yyyyMMddHHmmssfff")}.xlsx";
+
+            //return File(stream, "application/octet-stream", excelName);  
+            return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelName);
+        }
     }
 }
+
